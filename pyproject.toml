@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "faster-whisper>=1.1.1",
+    "groq>=0.18.0",
     "langchain>=0.3.19",
     "langchain-groq>=0.2.4",
     "openai-whisper>=20240930",

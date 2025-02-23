@@ -4,6 +4,8 @@ import os
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
+import torch
+from groq import Groq
 
 load_dotenv()
 
@@ -44,7 +46,7 @@ def summarize_transcript(transcript):
 
         # Create a prompt template
         prompt_template = """
-        Please summarize the following text:
+        Please summarize the following in paragraph form:
         {text}
         Summary:
         """
@@ -63,9 +65,24 @@ def summarize_transcript(transcript):
 def transcribe_video(video_url):
     try:
         audio_path = video_to_audio(video_url)
-        model = WhisperModel("small")
-        segments, info = model.transcribe(audio_path)
-        transcript = "".join([segment.text for segment in segments])
+
+        if torch.cuda.is_available():
+            # Process locally using Whisper
+            model = WhisperModel("small")
+            segments, info = model.transcribe(audio_path)
+            transcript = "".join([segment.text for segment in segments])
+        else:
+            # Use Groq for transcription
+            client = Groq()
+            with open(audio_path, "rb") as audio_file:
+                transcription = client.audio.transcriptions.create(
+                    file=(audio_path, audio_file.read()),
+                    model="whisper-large-v3-turbo",
+                    language="en",
+                    temperature=0.0,
+                )
+                transcript = transcription.text
+
         print("Transcript: %s" % transcript)
 
         # Clean up the audio file after transcription
@@ -75,4 +92,3 @@ def transcribe_video(video_url):
 
     except Exception as e:
         print(f"Error transcribing video: {str(e)}")
-
